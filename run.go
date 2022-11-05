@@ -11,8 +11,8 @@ import (
 	"mukdenranger.com/mydocker/container"
 )
 
-func Run(cmdArr []string, tty bool, resourceConfig *cgroups.ResourceConfig) {
-	parent, writePipe := container.NewParentProcess(tty)
+func Run(cmdArr []string, volume string, tty bool, resourceConfig *cgroups.ResourceConfig) {
+	parent, writePipe := container.NewParentProcess(tty, volume)
 	if parent == nil {
 		log.Errorf("New parent proces error")
 		return
@@ -46,7 +46,7 @@ func Run(cmdArr []string, tty bool, resourceConfig *cgroups.ResourceConfig) {
 	sendInitCommand(cmdArr, writePipe)
 	parent.Wait()
 	//os.Chdir("/home/ourupf")
-	container.DeleteWorkSpace("/home/ourupf/", "/home/ourupf/mnt")
+	container.DeleteWorkSpace("/home/ourupf/", "/home/ourupf/mnt", volume)
 }
 
 func sendInitCommand(cmdArr []string, writePipe *os.File) {

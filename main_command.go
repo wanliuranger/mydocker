@@ -48,8 +48,8 @@ var runCommand = cli.Command{
 			CpuShare:    context.String("cpushare"),
 			CpuSet:      context.String("cpuset"),
 		}
-		// volumes:=context.String("volume")
-		Run(cmds, tty, resourceConfig)
+		volumes := context.String("volume")
+		Run(cmds, volumes, tty, resourceConfig)
 		return nil
 	},
 }
@@ -63,5 +63,18 @@ var initCommand = cli.Command{
 		log.Infof("command: %s", cmd)
 		err := container.RunContainerInitProcess()
 		return err
+	},
+}
+
+var commitCommand = cli.Command{
+	Name:  "commit",
+	Usage: `commit current container to a tar file`,
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("missing container name")
+		}
+		imageName := context.Args().Get(0)
+		commitContainer(imageName)
+		return nil
 	},
 }

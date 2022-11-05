@@ -14,10 +14,10 @@ import (
 
 func RunContainerInitProcess() error {
 
-	mntUrl := "/home/ourupf/mnt"
-	rootUrl := "/home/ourupf"
-	newWorkSpace(rootUrl, mntUrl)
-	os.Chdir(mntUrl)
+	// mntUrl := "/home/ourupf/mnt"
+	// rootUrl := "/home/ourupf"
+	// newWorkSpace(rootUrl, mntUrl)
+	// os.Chdir(mntUrl)
 
 	commandArr := readUserCommand()
 	if len(commandArr) == 0 {

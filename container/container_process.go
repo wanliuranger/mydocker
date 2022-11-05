@@ -4,12 +4,13 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("new pipe error")
@@ -25,10 +26,10 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 		cmd.Stderr = os.Stderr
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
-	// mntUrl := "/home/ourupf/mnt"
-	// rootUrl := "/home/ourupf"
-	// newWorkSpace(rootUrl, mntUrl)
-	// cmd.Dir = mntUrl
+	mntUrl := "/home/ourupf/mnt"
+	rootUrl := "/home/ourupf"
+	newWorkSpace(rootUrl, mntUrl, volume)
+	cmd.Dir = mntUrl
 	return cmd, writePipe
 }
 
@@ -40,10 +41,44 @@ func NewPipe() (*os.File, *os.File, error) {
 	return read, write, err
 }
 
-func newWorkSpace(rootUrl string, mntUrl string) {
+func newWorkSpace(rootUrl string, mntUrl string, volume string) {
 	createReadOnlyLayer(rootUrl)
 	createWriteLayer(rootUrl)
 	createMntPoint(rootUrl, mntUrl)
+	mountVolume(mntUrl, volume)
+}
+
+func mountVolume(mntUrl string, volume string) {
+	if volume != "" {
+		urls := strings.Split(volume, ":")
+		if len(urls) == 2 && urls[0] != "" && urls[1] != "" {
+			exist, err := fileExist(urls[0])
+			if err != nil {
+				log.Errorf("fail to judge where dir %s exist, err:%v", urls[0], err)
+			}
+			if !exist {
+				if err := os.Mkdir(urls[0], 0777); err != nil {
+					log.Errorf("fail to create volume %s, err: %v", urls[0], err)
+				}
+			}
+
+			mntPath := path.Join(mntUrl, urls[1])
+			if err := os.Mkdir(mntPath, 0777); err != nil {
+				log.Errorf("fail to create mount point %s, err: %v", mntPath, err)
+			}
+
+			dirs := "dirs=" + urls[0]
+			cmd := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", mntPath)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				log.Errorf("mount volume error: %v", err)
+			}
+
+		} else {
+			log.Errorf("wrong volume format")
+		}
+	}
 }
 
 func createReadOnlyLayer(rootUrl string) {
@@ -84,7 +119,8 @@ func createMntPoint(rootUrl string, mntUrl string) {
 	}
 }
 
-func DeleteWorkSpace(rootUrl string, mntUrl string) {
+func DeleteWorkSpace(rootUrl string, mntUrl string, volume string) {
+	umountVolume(mntUrl, volume)
 	deleteMntPoint(mntUrl)
 	deleteWriteLayer(rootUrl, mntUrl)
 }
@@ -107,5 +143,21 @@ func deleteWriteLayer(rootUrl string, mntUrl string) {
 	writeUrl := path.Join(rootUrl, "writeLayer")
 	if err := os.RemoveAll(writeUrl); err != nil {
 		log.Errorf("remove write layer failed")
+	}
+}
+
+func umountVolume(mntUrl string, volume string) {
+	if volume != "" {
+		urls := strings.Split(volume, ":")
+		if len(urls) == 2 && urls[0] != "" && urls[1] != "" {
+			volumePath := path.Join(mntUrl, urls[1])
+			cmd := exec.Command("umount", volumePath)
+			cmd.Stderr = os.Stderr
+			cmd.Stdout = os.Stdout
+			if err := cmd.Run(); err != nil {
+				log.Errorf("umount volume %s failed, err: %v", urls[1], err)
+			}
+			cmd.Process.Wait()
+		}
 	}
 }
