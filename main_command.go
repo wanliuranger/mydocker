@@ -88,3 +88,12 @@ var commitCommand = cli.Command{
 		return nil
 	},
 }
+
+var psCommand = cli.Command{
+	Name:  "ps",
+	Usage: `show container info`,
+	Action: func(context *cli.Context) error {
+		showcurrentContainer()
+		return nil
+	},
+}

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/rand"
 	"os"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -13,8 +16,9 @@ import (
 )
 
 func Run(cmdArr []string, containerName string, imageName string, volume string, tty bool, resourceConfig *cgroups.ResourceConfig) {
+	containerId := randName(10)
 	if containerName == "" {
-		containerName = randName(10)
+		containerName = containerId
 	}
 	if imageName == "" {
 		imageName = "busybox"
@@ -50,9 +54,12 @@ func Run(cmdArr []string, containerName string, imageName string, volume string,
 	}
 
 	sendInitCommand(cmdArr, writePipe)
+	recordContainer(parent.Process.Pid, containerId, containerName, cmdArr, time.Now(), container.RUNNING)
+
 	parent.Wait()
 	//os.Chdir("/home/ourupf")
 	container.DeleteWorkSpace(containerName, volume)
+	os.RemoveAll(path.Join(container.DefaultLocationBase, containerId))
 }
 
 func sendInitCommand(cmdArr []string, writePipe *os.File) {
@@ -71,4 +78,38 @@ func randName(nameLen int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func recordContainer(pid int, id string, name string, cmdArr []string, createTime time.Time, status string) {
+	pidStr := fmt.Sprintf("%v", pid)
+	cmdAll := strings.Join(cmdArr, "")
+	createTimeStr := fmt.Sprintf("%v", createTime)
+	containerInfo := &container.ContainerInfo{
+		Pid:        pidStr,
+		Id:         id,
+		Name:       name,
+		Command:    cmdAll,
+		CreateTime: createTimeStr,
+		Status:     status,
+	}
+
+	configUrl := path.Join(container.DefaultLocationBase, id)
+	if err := os.MkdirAll(configUrl, 0644); err != nil {
+		log.Errorf("create config file base error: %v", err)
+		return
+	}
+	filePath := path.Join(configUrl, container.ConfigName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Errorf("create config file failed, error: %v", err)
+		return
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(containerInfo)
+	if err != nil {
+		log.Errorf("write config file failed, error: %v", err)
+	}
+
 }

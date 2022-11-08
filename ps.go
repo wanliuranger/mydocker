@@ -38,7 +38,7 @@ func showcurrentContainer() {
 	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
 	fmt.Fprint(w, "ID\tName\tPID\tStatus\tCOMMAND\tCREATED\n")
 	for _, it := range containerInfoList {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
 			it.Id,
 			it.Name,
 			it.Pid,
