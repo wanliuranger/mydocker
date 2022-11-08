@@ -1,18 +1,25 @@
 package main
 
 import (
+	"math/rand"
 	"os"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"mukdenranger.com/mydocker/cgroups"
 	"mukdenranger.com/mydocker/container"
 )
 
-func Run(cmdArr []string, volume string, tty bool, resourceConfig *cgroups.ResourceConfig) {
-	parent, writePipe := container.NewParentProcess(tty, volume)
+func Run(cmdArr []string, containerName string, imageName string, volume string, tty bool, resourceConfig *cgroups.ResourceConfig) {
+	if containerName == "" {
+		containerName = randName(10)
+	}
+	if imageName == "" {
+		imageName = "busybox"
+	}
+	parent, writePipe := container.NewParentProcess(tty, containerName, imageName, volume)
 	if parent == nil {
 		log.Errorf("New parent proces error")
 		return
@@ -25,9 +32,8 @@ func Run(cmdArr []string, volume string, tty bool, resourceConfig *cgroups.Resou
 		syscall.Mount("proc", "/proc", "proc", uintptr(syscall.MS_NODEV), "")
 	}()
 	if resourceConfig != nil {
-		cgroupName := uuid.New().String()
-		log.Printf("cgroupName: %v\n", cgroupName)
-		cgroupMgr := cgroups.NewCgroupManager(cgroupName)
+		log.Printf("cgroupName: %v\n", containerName)
+		cgroupMgr := cgroups.NewCgroupManager(containerName)
 		err := cgroupMgr.CreateCgroup()
 		if err != nil {
 			log.Printf("create cgroup error: %v", err)
@@ -46,7 +52,7 @@ func Run(cmdArr []string, volume string, tty bool, resourceConfig *cgroups.Resou
 	sendInitCommand(cmdArr, writePipe)
 	parent.Wait()
 	//os.Chdir("/home/ourupf")
-	container.DeleteWorkSpace("/home/ourupf/", "/home/ourupf/mnt", volume)
+	container.DeleteWorkSpace(containerName, volume)
 }
 
 func sendInitCommand(cmdArr []string, writePipe *os.File) {
@@ -54,4 +60,15 @@ func sendInitCommand(cmdArr []string, writePipe *os.File) {
 	log.Infof("user command is: %s", command)
 	writePipe.WriteString(command)
 	writePipe.Close()
+}
+
+func randName(nameLen int) string {
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz1234566780")
+	rand.Seed(time.Now().UnixNano())
+
+	b := make([]rune, nameLen)
+	for i := 0; i < nameLen; i++ {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
 }

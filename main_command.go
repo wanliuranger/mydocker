@@ -33,6 +33,14 @@ var runCommand = cli.Command{
 			Name:  "volume",
 			Usage: "volume to be mounted",
 		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "name of the container about to run",
+		},
+		cli.StringFlag{
+			Name:  "image",
+			Usage: "the image that used to build the container",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -48,8 +56,10 @@ var runCommand = cli.Command{
 			CpuShare:    context.String("cpushare"),
 			CpuSet:      context.String("cpuset"),
 		}
+		containerName := context.String("name")
+		imageName := context.String("image")
 		volumes := context.String("volume")
-		Run(cmds, volumes, tty, resourceConfig)
+		Run(cmds, containerName, imageName, volumes, tty, resourceConfig)
 		return nil
 	},
 }
