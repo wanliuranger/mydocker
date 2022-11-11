@@ -41,6 +41,14 @@ var runCommand = cli.Command{
 			Name:  "image",
 			Usage: "the image that used to build the container",
 		},
+		cli.BoolFlag{
+			Name:  "d",
+			Usage: "the program will run in detach mode if set",
+		},
+		cli.BoolFlag{
+			Name:  "log",
+			Usage: "save log to pointed file",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -51,15 +59,17 @@ var runCommand = cli.Command{
 			cmds = append(cmds, arg)
 		}
 		tty := context.Bool("ti")
+		detach := context.Bool("d")
 		resourceConfig := &cgroups.ResourceConfig{
 			MemoryLimit: context.String("memory"),
 			CpuShare:    context.String("cpushare"),
 			CpuSet:      context.String("cpuset"),
 		}
+		useLog := context.Bool("log")
 		containerName := context.String("name")
 		imageName := context.String("image")
 		volumes := context.String("volume")
-		Run(cmds, containerName, imageName, volumes, tty, resourceConfig)
+		Run(cmds, containerName, imageName, volumes, tty, detach, useLog, resourceConfig)
 		return nil
 	},
 }
@@ -95,5 +105,27 @@ var psCommand = cli.Command{
 	Action: func(context *cli.Context) error {
 		showcurrentContainer()
 		return nil
+	},
+}
+
+var stopCommand = cli.Command{
+	Name:  "stop",
+	Usage: "stop a container with id",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("stop command needs a container id")
+		}
+		return stopContainer(context.Args().Get(0))
+	},
+}
+
+var showLogCommand = cli.Command{
+	Name:  "log",
+	Usage: "show log of certain container",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("log command requeres a container id")
+		}
+		return showLog(context.Args().Get(0))
 	},
 }

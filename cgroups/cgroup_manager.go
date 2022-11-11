@@ -33,7 +33,7 @@ func (mgr *CgroupManager) CreateCgroup() error {
 func (mgr *CgroupManager) RemoveCgroup() error {
 	err := os.RemoveAll(mgr.cgroupPath)
 	if err != nil {
-		logrus.Printf("remove cgroup error: %v\n", err)
+		logrus.Errorf("remove cgroup error: %v\n", err)
 	}
 	return err
 }

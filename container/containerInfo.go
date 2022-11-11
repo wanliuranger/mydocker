@@ -6,6 +6,7 @@ type ContainerInfo struct {
 	Name       string `json:"name"`
 	Command    string `json:"command"`
 	CreateTime string `json:"createTime"`
+	Volume     string `json:"volume"`
 	Status     string `json:"status"`
 }
 
@@ -15,4 +16,5 @@ var (
 	EXIT                string = "exited"
 	DefaultLocationBase string = "/var/run/mydocker/"
 	ConfigName          string = "config.json"
+	LogName             string = "container.log"
 )

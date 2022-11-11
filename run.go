@@ -15,7 +15,7 @@ import (
 	"mukdenranger.com/mydocker/container"
 )
 
-func Run(cmdArr []string, containerName string, imageName string, volume string, tty bool, resourceConfig *cgroups.ResourceConfig) {
+func Run(cmdArr []string, containerName string, imageName string, volume string, tty bool, detach bool, useLog bool, resourceConfig *cgroups.ResourceConfig) {
 	containerId := randName(10)
 	if containerName == "" {
 		containerName = containerId
@@ -23,7 +23,7 @@ func Run(cmdArr []string, containerName string, imageName string, volume string,
 	if imageName == "" {
 		imageName = "busybox"
 	}
-	parent, writePipe := container.NewParentProcess(tty, containerName, imageName, volume)
+	parent, writePipe := container.NewParentProcess(tty, containerId, containerName, imageName, volume, useLog)
 	if parent == nil {
 		log.Errorf("New parent proces error")
 		return
@@ -37,12 +37,14 @@ func Run(cmdArr []string, containerName string, imageName string, volume string,
 	}()
 	if resourceConfig != nil {
 		log.Printf("cgroupName: %v\n", containerName)
-		cgroupMgr := cgroups.NewCgroupManager(containerName)
+		cgroupMgr := cgroups.NewCgroupManager(containerId)
 		err := cgroupMgr.CreateCgroup()
 		if err != nil {
 			log.Printf("create cgroup error: %v", err)
 		}
-		defer cgroupMgr.RemoveCgroup()
+		if !detach {
+			defer cgroupMgr.RemoveCgroup()
+		}
 		err = cgroupMgr.ConfigResource(resourceConfig)
 		if err != nil {
 			log.Printf("config resource error: %v", err)
@@ -54,12 +56,14 @@ func Run(cmdArr []string, containerName string, imageName string, volume string,
 	}
 
 	sendInitCommand(cmdArr, writePipe)
-	recordContainer(parent.Process.Pid, containerId, containerName, cmdArr, time.Now(), container.RUNNING)
+	recordContainer(parent.Process.Pid, containerId, containerName, cmdArr, volume, time.Now(), container.RUNNING)
 
-	parent.Wait()
-	//os.Chdir("/home/ourupf")
-	container.DeleteWorkSpace(containerName, volume)
-	os.RemoveAll(path.Join(container.DefaultLocationBase, containerId))
+	if !detach {
+		parent.Wait()
+		//os.Chdir("/home/ourupf")
+		container.DeleteWorkSpace(containerName, volume)
+		os.RemoveAll(path.Join(container.DefaultLocationBase, containerId))
+	}
 }
 
 func sendInitCommand(cmdArr []string, writePipe *os.File) {
@@ -80,9 +84,9 @@ func randName(nameLen int) string {
 	return string(b)
 }
 
-func recordContainer(pid int, id string, name string, cmdArr []string, createTime time.Time, status string) {
+func recordContainer(pid int, id string, name string, cmdArr []string, volume string, createTime time.Time, status string) {
 	pidStr := fmt.Sprintf("%v", pid)
-	cmdAll := strings.Join(cmdArr, "")
+	cmdAll := strings.Join(cmdArr, " ")
 	createTimeStr := fmt.Sprintf("%v", createTime)
 	containerInfo := &container.ContainerInfo{
 		Pid:        pidStr,
@@ -90,6 +94,7 @@ func recordContainer(pid int, id string, name string, cmdArr []string, createTim
 		Name:       name,
 		Command:    cmdAll,
 		CreateTime: createTimeStr,
+		Volume:     volume,
 		Status:     status,
 	}
 

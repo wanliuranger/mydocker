@@ -24,10 +24,9 @@ func RunContainerInitProcess() error {
 		return fmt.Errorf("get user command error, nothing in cmdArr")
 	}
 
-	// defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
-	// syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), "")
-
 	setupMount()
+	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
+	syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), "")
 
 	path, err := exec.LookPath(commandArr[0])
 	if err != nil {

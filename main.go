@@ -19,6 +19,8 @@ func main() {
 		initCommand,
 		commitCommand,
 		psCommand,
+		stopCommand,
+		showLogCommand,
 	}
 
 	app.Before = func(ctx *cli.Context) error {
