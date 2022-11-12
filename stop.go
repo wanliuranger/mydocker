@@ -22,6 +22,7 @@ func stopContainer(containerId string) error {
 	if err != nil {
 		return fmt.Errorf("can't open container %s config, you need to clean manually", containerId)
 	}
+	defer file.Close()
 	decoder := json.NewDecoder(file)
 	conf := &container.ContainerInfo{}
 	decoder.Decode(conf)
