@@ -20,6 +20,7 @@ func showLog(containerId string) error {
 		fmt.Printf("container %s does not have a log file", containerId)
 		return nil
 	}
+	defer file.Close()
 	logContext, _ := ioutil.ReadAll(file)
 	fmt.Fprint(os.Stdout, string(logContext))
 	return nil

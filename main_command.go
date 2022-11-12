@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -127,5 +128,32 @@ var showLogCommand = cli.Command{
 			return fmt.Errorf("log command requeres a container id")
 		}
 		return showLog(context.Args().Get(0))
+	},
+}
+
+var execCommand = cli.Command{
+	Name:  "exec",
+	Usage: "execute command in a certain container",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "the id of the container which you want to execute command in",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		if os.Getenv(ENV_EXEC_PID) != "" {
+			return nil
+		}
+		containerId := context.String("id")
+		fmt.Printf("containerId: %v\n", containerId)
+		if len(containerId) == 0 {
+			fmt.Printf("no containerId %s", containerId)
+			return fmt.Errorf("a container Id is required")
+		}
+		var cmds []string
+		for _, cmd := range context.Args() {
+			cmds = append(cmds, cmd)
+		}
+		return execCommandInContainer(containerId, cmds)
 	},
 }
