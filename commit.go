@@ -8,8 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func commitContainer(imageName string) {
-	containerWorkDir := "/home/ourupf/mnt"
+func commitContainer(containerId string, imageName string) {
+	containerWorkBase := "/home/ourupf/mnt"
+	containerWorkDir := path.Join(containerWorkBase, containerId)
 	cur, _ := os.Getwd()
 	imageTar := path.Join(cur, imageName+".tar")
 	if _, err := exec.Command("tar", "-czf", imageTar, "-C", containerWorkDir, ".").CombinedOutput(); err != nil {

@@ -90,12 +90,22 @@ var initCommand = cli.Command{
 var commitCommand = cli.Command{
 	Name:  "commit",
 	Usage: `commit current container to a tar file`,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "The id of the contaner you want to commit",
+		},
+	},
 	Action: func(context *cli.Context) error {
+		containerId := context.String("id")
+		if containerId == "" {
+			return fmt.Errorf("missing container id")
+		}
 		if len(context.Args()) < 1 {
 			return fmt.Errorf("missing container name")
 		}
 		imageName := context.Args().Get(0)
-		commitContainer(imageName)
+		commitContainer(containerId, imageName)
 		return nil
 	},
 }
