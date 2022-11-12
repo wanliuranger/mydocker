@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"mukdenranger.com/mydocker/container"
 	_ "mukdenranger.com/mydocker/nsenter"
 )
@@ -41,10 +43,23 @@ func execCommandInContainer(containerId string, cmds []string) error {
 
 	os.Setenv(ENV_EXEC_PID, conf.Pid)
 	os.Setenv(ENV_EXEC_CMD, cmdStr)
+	containerEnv := getEnvSlices(conf.Pid)
+	cmd.Env = append(os.Environ(), containerEnv...)
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("exec command error: %v", err)
 	}
 
 	return nil
+}
+
+func getEnvSlices(pid string) []string {
+	envdir := path.Join("/proc", pid, "environ")
+	contentBytes, err := ioutil.ReadFile(envdir)
+	if err != nil {
+		log.Errorf("get envslices error: %v", err)
+		return nil
+	}
+	env := strings.Split(string(contentBytes), "\u0000")
+	return env
 }

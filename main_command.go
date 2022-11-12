@@ -50,6 +50,10 @@ var runCommand = cli.Command{
 			Name:  "log",
 			Usage: "save log to pointed file",
 		},
+		cli.StringSliceFlag{
+			Name:  "e",
+			Usage: "set environment",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -70,7 +74,8 @@ var runCommand = cli.Command{
 		containerName := context.String("name")
 		imageName := context.String("image")
 		volumes := context.String("volume")
-		Run(cmds, containerName, imageName, volumes, tty, detach, useLog, resourceConfig)
+		envSlices := context.StringSlice("e")
+		Run(cmds, containerName, imageName, volumes, tty, detach, useLog, envSlices, resourceConfig)
 		return nil
 	},
 }

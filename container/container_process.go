@@ -16,7 +16,7 @@ const (
 	writeLayerBase = "/home/ourupf/writeLayer"
 )
 
-func NewParentProcess(tty bool, containerId string, containerName string, imageName string, volume string, useLog bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, containerId string, containerName string, imageName string, volume string, useLog bool, envSlices []string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("new pipe error")
@@ -46,6 +46,7 @@ func NewParentProcess(tty bool, containerId string, containerName string, imageN
 		cmd.Stdout = logFile
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
+	cmd.Env = append(os.Environ(), envSlices...)
 	newWorkSpace(containerName, imageName, volume)
 	cmd.Dir = path.Join(mntBase, containerName)
 

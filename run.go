@@ -15,7 +15,7 @@ import (
 	"mukdenranger.com/mydocker/container"
 )
 
-func Run(cmdArr []string, containerName string, imageName string, volume string, tty bool, detach bool, useLog bool, resourceConfig *cgroups.ResourceConfig) {
+func Run(cmdArr []string, containerName string, imageName string, volume string, tty bool, detach bool, useLog bool, envSlices []string, resourceConfig *cgroups.ResourceConfig) {
 	containerId := randName(10)
 	if containerName == "" {
 		containerName = containerId
@@ -23,7 +23,7 @@ func Run(cmdArr []string, containerName string, imageName string, volume string,
 	if imageName == "" {
 		imageName = "busybox"
 	}
-	parent, writePipe := container.NewParentProcess(tty, containerId, containerName, imageName, volume, useLog)
+	parent, writePipe := container.NewParentProcess(tty, containerId, containerName, imageName, volume, useLog, envSlices)
 	if parent == nil {
 		log.Errorf("New parent proces error")
 		return
