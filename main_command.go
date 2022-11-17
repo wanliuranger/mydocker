@@ -8,6 +8,9 @@ import (
 	"github.com/urfave/cli"
 	"mukdenranger.com/mydocker/cgroups"
 	"mukdenranger.com/mydocker/container"
+	_ "mukdenranger.com/mydocker/network"
+
+	_ "github.com/vishvananda/netlink"
 )
 
 var runCommand = cli.Command{
@@ -169,6 +172,7 @@ var execCommand = cli.Command{
 		for _, cmd := range context.Args() {
 			cmds = append(cmds, cmd)
 		}
+
 		return execCommandInContainer(containerId, cmds)
 	},
 }
