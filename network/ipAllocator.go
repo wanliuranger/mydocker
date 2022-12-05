@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"path"
@@ -19,6 +20,11 @@ const (
 type IPAM struct {
 	mpLock     sync.Mutex
 	AllocateMp map[string]string `json:"subnet"`
+}
+
+var ipAllocator = &IPAM{
+	mpLock:     sync.Mutex{},
+	AllocateMp: make(map[string]string),
 }
 
 func (ipam *IPAM) load() {
@@ -83,4 +89,31 @@ func (ipam *IPAM) Allocate(cidr *net.IPNet) (*net.IP, error) {
 	ipam.AllocateMp[cidrStr] = string(mpByte)
 	ipam.dump()
 	return &ans, nil
+}
+
+func (ipam *IPAM) Release(subnet *net.IPNet, ip *net.IP) error {
+	ipam.mpLock.Lock()
+	defer ipam.mpLock.Unlock()
+
+	ipam.load()
+	cidrStr := subnet.String()
+	if _, ok := ipam.AllocateMp[cidrStr]; !ok {
+		return fmt.Errorf("no such cidr")
+	}
+
+	rawIP := ip.To4()
+
+	_, cidr, _ := net.ParseCIDR(subnet.String())
+	pos := 0
+	for i := 0; i < 4; i++ {
+		pos = pos + int(cidr.IP[i]-rawIP[i])<<((3-i)*8)
+	}
+	pos = pos - 1
+	ipalloc := []byte(ipam.AllocateMp[subnet.String()])
+	ipalloc[pos] = '0'
+	ipam.AllocateMp[subnet.String()] = string(ipalloc)
+
+	ipam.dump()
+
+	return nil
 }
